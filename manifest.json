@@ -1,0 +1,12 @@
+{
+  "name": "wishboard. 愿景板",
+  "short_name": "wishboard.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#FDFBF8",
+  "theme_color": "#E8752A",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

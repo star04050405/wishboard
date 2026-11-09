@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>wishboard. 愿景板</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;
+ background:#FDFBF8;color:#2B2B2B;padding:0 14px calc(30px + env(safe-area-inset-bottom))}
+.serif{font-family:Georgia,"Songti SC",serif}
+header{padding:30px 4px 6px;text-align:center}
+.eyebrow{font-size:.64rem;letter-spacing:.38em;color:#E8752A;font-weight:600;margin-bottom:10px}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em}
+h1 .en{font-family:Georgia,serif;font-style:italic;font-weight:600;color:#E8752A}
+.sub{margin-top:6px;font-size:.8rem;color:#9A938A}
+.stepbadge{display:inline-block;margin-top:12px;background:#FFF4EC;border:1px solid #F5C9A8;color:#C05A1E;
+ font-size:.66rem;padding:5px 12px;border-radius:99px;letter-spacing:.06em;font-weight:600}
+/* Roxie 七步导航 */
+.steps{display:flex;gap:6px;justify-content:center;margin:16px 4px 4px;flex-wrap:wrap}
+.steps span{font-size:.62rem;color:#B8AFA4;padding:4px 9px;border-radius:99px;background:#F5F1EA}
+.steps span.now{background:#2B2B2B;color:#FDFBF8}
+.quote{max-width:520px;margin:14px auto 6px;font-size:.72rem;color:#8F887E;text-align:center;line-height:1.7;font-style:italic}
+/* 画布 */
+.board{max-width:560px;margin:18px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cell{background:#fff;border-radius:18px;min-height:215px;position:relative;overflow:hidden;
+ box-shadow:0 2px 10px rgba(80,70,50,.07);border:1px solid #F0EAE0}
+.cell .tag{position:absolute;top:9px;left:9px;z-index:2;font-size:.6rem;font-weight:700;
+ padding:4px 10px;border-radius:99px;color:#fff;letter-spacing:.05em;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.cell .add{position:absolute;right:8px;top:7px;z-index:2;font-size:1rem;width:26px;height:26px;border-radius:99px;
+ background:#FDFBF8;border:1px solid #EEE7DB;color:#B8AFA4;display:flex;align-items:center;justify-content:center;font-weight:700}
+.cell .dotted{position:absolute;inset:34px 10px 10px;border:1.5px dashed #EFE8DB;border-radius:12px;
+ pointer-events:none;transition:border-color .3s}
+.cell.active .dotted{border-color:#E8B48C}
+.cell .ghost{position:absolute;inset:34px 10px 10px;display:flex;align-items:center;justify-content:center;
+ color:#D8D0C2;font-size:.68rem;pointer-events:none}
+/* 贴纸 */
+.stk{position:absolute;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;
+ text-shadow:2px 0 0 #fff,-2px 0 0 #fff,0 2px 0 #fff,0 -2px 0 #fff,1.5px 1.5px 0 #fff,-1.5px 1.5px 0 #fff,1.5px -1.5px 0 #fff,-1.5px -1.5px 0 #fff;
+ transition:filter .15s}
+.stk.sel{filter:drop-shadow(0 0 0 transparent);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{filter:drop-shadow(0 0 1px #E8752A)}50%{filter:drop-shadow(0 0 6px #E8752A)}}
+.stk.txt{text-shadow:none;background:#fff;border-radius:12px;padding:7px 13px;font-size:.86rem;font-weight:700;
+ color:#2B2B2B;box-shadow:0 2px 8px rgba(80,70,50,.1);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.stk.txt.hi{background:#FFE9A8}
+.stk.txt.pk{background:#F9D5DC}
+.stk.txt.bl{background:#D6E4F7}
+/* 控制条 */
+.ctrl{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));
+ background:#2B2B2B;border-radius:16px;padding:8px;display:none;gap:6px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.ctrl.show{display:flex}
+.ctrl button{width:40px;height:40px;border-radius:12px;border:none;background:rgba(255,255,255,.1);
+ color:#fff;font-size:1.05rem;cursor:pointer}
+.ctrl button:active{background:rgba(255,255,255,.28)}
+.ctrl .del{background:#C0392B}
+/* 贴纸库 */
+.drawer{max-width:560px;margin:20px auto 0;background:#fff;border-radius:18px;border:1px solid #F0EAE0;
+ box-shadow:0 2px 10px rgba(80,70,50,.07);overflow:hidden}
+.drawer .dhead{padding:12px 14px 4px;font-size:.68rem;color:#9A938A;font-weight:600;letter-spacing:.05em}
+.dtabs{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;scrollbar-width:none}
+.dtabs::-webkit-scrollbar{display:none}
+.dtab{flex:none;font-size:.7rem;font-weight:700;padding:7px 13px;border-radius:99px;background:#F5F1EA;color:#8F887E;border:none}
+.dtab.on{background:#2B2B2B;color:#fff}
+.dgrid{display:flex;flex-wrap:wrap;gap:6px;padding:6px 14px 16px}
+.dgrid .ds{font-size:1.7rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+ border-radius:12px;background:#fff;cursor:pointer;border:1px solid #F0EAE0;box-shadow:0 2px 6px rgba(80,70,50,.08)}
+.dgrid .ds:nth-child(odd){transform:rotate(-5deg)}
+.dgrid .ds:nth-child(even){transform:rotate(4deg)}
+.dgrid .ds:nth-child(3n){transform:rotate(-2deg)}
+.dgrid .ds:active{transform:scale(1.18)}
+/* 文字贴输入 */
+.trow{display:flex;gap:8px;padding:4px 14px 16px;align-items:center}
+.trow input{flex:1;min-width:0;font-size:16px;padding:11px 14px;border-radius:12px;border:1.5px solid #EFE8DB;
+ background:#FAF6EF;outline:none;font-family:inherit}
+.trow input:focus{border-color:#E8752A}
+.trow .hi-btns{display:flex;gap:5px}
+.hi-btns span{width:26px;height:26px;border-radius:8px;cursor:pointer;border:1px solid #EFE8DB}
+.hi-btns span.on{outline:2px solid #2B2B2B}
+.trow .put{background:#E8752A;color:#fff;border:none;border-radius:12px;padding:11px 16px;font-size:.8rem;font-weight:700}
+/* 底部操作 */
+.acts{max-width:560px;margin:16px auto 0;display:flex;gap:10px}
+.acts button{flex:1;padding:13px;border-radius:14px;border:1.5px solid #EFE8DB;background:#fff;
+ font-size:.78rem;font-weight:700;color:#8F887E;cursor:pointer;font-family:inherit}
+.acts .exp{background:#2B2B2B;color:#fff;border-color:#2B2B2B}
+.hintbar{max-width:560px;margin:10px auto 0;font-size:.66rem;color:#B8AFA4;text-align:center;line-height:1.7}
+/* Roxie 说明卡 */
+.roxie{max-width:560px;margin:26px auto 0;background:#FFF9F2;border:1px solid #F5E3CF;border-radius:18px;padding:18px 18px 8px}
+.roxie h3{font-size:.8rem;color:#C05A1E;margin-bottom:10px;letter-spacing:.08em}
+.roxie p{font-size:.74rem;line-height:1.85;color:#6B6459;margin-bottom:10px}
+.roxie b{color:#2B2B2B}
+footer{margin-top:30px;text-align:center;font-size:.62rem;color:#C9C1B4;line-height:1.8}
+.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:calc(84px + env(safe-area-inset-bottom));
+ background:#2B2B2B;color:#fff;font-size:.72rem;padding:9px 18px;border-radius:99px;opacity:0;transition:.25s;z-index:60;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+canvas{display:none}
+@media(max-width:400px){.cell{min-height:190px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="eyebrow">MANIFEST · ROXIE NAFOUSI</div>
+ <h1 class="serif">wish <span class="en">board.</span></h1>
+ <div class="sub">愿景板 · 把想要的生活先贴出来</div>
+ <div class="stepbadge">STEP 1 · 明确你的愿景 —— 愿景板是显化七步的官方工具</div>
+ <div class="steps">
+  <span class="now">1 明确愿景</span><span>2 消除恐惧</span><span>3 调整行为</span><span>4 克服阻力</span><span>5 深化感恩</span><span>6 积极成长</span><span>7 相信生长</span>
+ </div>
+ <div class="quote">「愿景板做完就收起来，到了日期再拿出来对答案。」—— Roxie Nafousi《显化》</div>
+</header>
+
+<div class="board" id="board"></div>
+
+<div class="drawer">
+ <div class="dhead" id="dhead">选一个板块，把贴纸贴上去 · 拖动调整位置</div>
+ <div class="dtabs" id="dtabs"></div>
+ <div class="dgrid" id="dgrid"></div>
+ <div class="trow">
+  <input id="tinput" placeholder="写一句想贴的话…" maxlength="24">
+  <div class="hi-btns" id="hibtns">
+   <span style="background:#fff" class="on" data-c=""></span>
+   <span style="background:#FFE9A8" data-c="hi"></span>
+   <span style="background:#F9D5DC" data-c="pk"></span>
+   <span style="background:#D6E4F7" data-c="bl"></span>
+  </div>
+  <button class="put" onclick="putText()">贴上</button>
+ </div>
+</div>
+
+<div class="acts">
+ <button onclick="demo()">示例板</button>
+ <button onclick="clearAll()">清空</button>
+ <button class="exp" onclick="exportPNG()">导出 PNG</button>
+</div>
+<div class="hintbar">贴纸可拖动 · 点选后可缩放旋转删除 · 自动保存在本机<br>按 Roxie 的方法：贴完收起来，写下今天的日期，三个月后回来对答案</div>
+
+<div class="roxie">
+ <h3>ROXIE 的愿景板法则</h3>
+ <p><b>六板块全都要贴。</b>个人发展、爱情关系、事业、朋友与家人、房子与家、兴趣爱好——一块都不能空：人容易只贴「事业与钱」，而忽略生活本身。</p>
+ <p><b>要具体。</b>大脑对「想象一件事」和「真实经历它」的反应几乎一样——视觉化会真的改变你的行为模式。所以别贴「有钱」，贴你看到钱时眼睛发亮的具体画面。</p>
+ <p><b>收起来，定期对答案。</b>做完的愿景板不要天天盯着看。Roxie 的做法：写下日期，收起来，到了约定的时间再打开——你会惊讶多少事已经悄悄发生。</p>
+</div>
+
+<footer>wishboard. · 显化宇宙的小小一块拼贴<br>配合家族「显化七步」站食用更佳 · 非医疗建议</footer>
+<div class="toast" id="toast"></div>
+<div class="ctrl" id="ctrl">
+ <button onclick="scaleStk(.18)">＋</button>
+ <button onclick="scaleStk(-.18)">－</button>
+ <button onclick="rotStk()">⟳</button>
+ <button class="del" onclick="delStk()">✕</button>
+</div>
+<canvas id="cv" width="1080" height="1350"></canvas>
+
+<script>
+var CATS=[{"n": "个人发展", "en": "SELF", "ic": "🌱", "color": "#A8D5BA", "stickers": ["✨", "🎯", "📖", "🧘‍♀️", "🌅", "📚", "🪞", "🍀", "🎓", "⏰"]}, {"n": "爱情关系", "en": "LOVE", "ic": "💗", "color": "#F4B8C1", "stickers": ["❤️", "🌹", "💍", "💌", "🫶", "💏", "🌙", "🦢", "💞", "🧿"]}, {"n": "事业", "en": "CAREER", "ic": "💼", "color": "#F5D491", "stickers": ["🏆", "💰", "💎", "📈", "🔑", "✍️", "☕️", "⭐️", "🪩", "📌"]}, {"n": "朋友与家人", "en": "PEOPLE", "ic": "🫂", "color": "#F5C89A", "stickers": ["🐶", "🐱", "🎂", "🏠", "🎂", "🍽", "🎁", "🧸", "📞", "🌷"]}, {"n": "房子与家", "en": "HOME", "ic": "🕯", "color": "#AFC8E8", "stickers": ["🏡", "🌿", "🛋", "🕯", "🪟", "🍵", "🧺", "🌸", "🫧", "☀️"]}, {"n": "兴趣爱好", "en": "PLAY", "ic": "🎨", "color": "#CDB4E0", "stickers": ["🏝", "🎨", "🎧", "✈️", "🏄‍♀️", "⛰", "🎬", "🛼", "📷", "🎸"]}];
+var S;  // {ci:[{t,e,x,y,s,r,txt,c}]}
+try{S=JSON.parse(localStorage.getItem('wishboard_v1'))||{}}catch(e){S={}}
+function save(){localStorage.setItem('wishboard_v1',JSON.stringify(S))}
+var curCat=0, sel=null, selCi=-1, selIdx=-1, txtCls='';
+/* board render */
+function renderBoard(){
+ var b=document.getElementById('board');b.innerHTML='';
+ CATS.forEach(function(c,ci){
+  var cell=document.createElement('div');
+  cell.className='cell'+(ci===curCat?' active':'');
+  cell.style.background=c.color+'33';
+  cell.innerHTML='<div class="tag" style="background:'+c.color+'">'+c.ic+' '+c.n+'</div>'+
+   '<button class="add" onclick="setCat('+ci+')">＋</button>'+
+   '<div class="dotted"></div>';
+  var list=S[ci]||[];
+  if(!list.length){var g=document.createElement('div');g.className='ghost';g.textContent='空的 · 从下面贴纸库挑一张贴上来';cell.appendChild(g)}
+  list.forEach(function(stk,idx){
+   var el=document.createElement('div');
+   el.className='stk'+(stk.t==='t'?' txt'+(stk.c?' '+stk.c:''):'');
+   if(stk.t==='e'){el.textContent=stk.e;el.style.fontSize=(44*stk.s)+'px'}
+   else{el.textContent=stk.txt}
+   el.style.left=(stk.x*100)+'%';el.style.top=(stk.y*100)+'%';
+   el.style.transform='translate(-50%,-50%) rotate('+stk.r+'deg)'+(stk.t==='t'?' scale('+stk.s+')':'');
+   if(selCi===ci&&selIdx===idx)el.classList.add('sel');
+   el.onpointerdown=function(ev){dragStart(ev,ci,idx,el)};
+   cell.appendChild(el);
+  });
+  cell.onpointerdown=function(ev){
+   if(ev.target.classList.contains('add'))return;
+   if(ev.target.classList.contains('stk'))return;
+   setCat(ci);
+  };
+  b.appendChild(cell);
+ });
+}
+function setCat(ci){curCat=ci;renderTabs();renderBoard()}
+/* drag */
+var dragInfo=null;
+function dragStart(ev,ci,idx,el){
+ ev.preventDefault();ev.stopPropagation();
+ sel={ci:ci,idx:idx};selCi=ci;selIdx=idx;
+ var cell=el.parentElement;
+ var rect=cell.getBoundingClientRect();
+ dragInfo={ci:ci,idx:idx,el:el,rect:rect,dx:ev.clientX-rect.left-(S[ci][idx].x*rect.width),dy:ev.clientY-rect.top-(S[ci][idx].y*rect.height),moved:false};
+ el.setPointerCapture&&el.setPointerCapture(ev.pointerId);
+ renderBoard();showCtrl();
+ window.onpointermove=function(ev){
+  if(!dragInfo)return;dragInfo.moved=true;
+  var x=(ev.clientX-dragInfo.rect.left-dragInfo.dx)/dragInfo.rect.width;
+  var y=(ev.clientY-dragInfo.rect.top-dragInfo.dy)/dragInfo.rect.height;
+  x=Math.max(.05,Math.min(.95,x));y=Math.max(.08,Math.min(.92,y));
+  S[dragInfo.ci][dragInfo.idx].x=x;S[dragInfo.ci][dragInfo.idx].y=y;
+  dragInfo.el.style.left=(x*100)+'%';dragInfo.el.style.top=(y*100)+'%';
+ };
+ window.onpointerup=function(){
+  if(dragInfo&&!dragInfo.moved){/* tap=select only */}
+  dragInfo=null;save();
+  window.onpointermove=null;window.onpointerup=null;
+ };
+}
+function showCtrl(){var c=document.getElementById('ctrl');
+ if(sel){c.classList.add('show')}else{c.classList.remove('show')}}
+function scaleStk(d){if(!sel)return;var st=S[sel.ci][sel.idx];
+ st.s=Math.max(.5,Math.min(2.6,st.s+d));save();renderBoard()}
+function rotStk(){if(!sel)return;var st=S[sel.ci][sel.idx];
+ st.r+=15;if(st.r>=360)st.r-=360;save();renderBoard()}
+function delStk(){if(!sel)return;
+ S[sel.ci].splice(sel.idx,1);sel=null;selCi=-1;selIdx=-1;
+ save();renderBoard();showCtrl();toast('已撕掉')}
+document.body.addEventListener('pointerdown',function(ev){
+ if(!sel)return;
+ if(ev.target.closest('.ctrl'))return;
+ if(ev.target.classList.contains('stk'))return;
+ if(ev.target.closest('.drawer')||ev.target.closest('.acts'))return;
+ sel=null;selCi=-1;selIdx=-1;renderBoard();showCtrl();
+});
+/* drawer */
+function renderTabs(){
+ var t=document.getElementById('dtabs');t.innerHTML='';
+ CATS.forEach(function(c,ci){
+  var b=document.createElement('button');
+  b.className='dtab'+(ci===curCat?' on':'');
+  b.textContent=c.ic+' '+c.n;
+  b.onclick=function(){setCat(ci)};
+  t.appendChild(b);
+ });
+ document.getElementById('dhead').textContent=CATS[curCat].ic+' '+CATS[curCat].n+' · 点贴纸放到这个板块（右下 + 切换板块）';
+ var g=document.getElementById('dgrid');g.innerHTML='';
+ CATS[curCat].stickers.forEach(function(e){
+  var d=document.createElement('div');d.className='ds';d.textContent=e;
+  d.onclick=function(){addStk(e)};
+  g.appendChild(d);
+ });
+}
+function addStk(e){
+ S[curCat]=S[curCat]||[];
+ var r=(Math.random()*24-12);
+ S[curCat].push({t:'e',e:e,x:.3+Math.random()*.4,y:.35+Math.random()*.35,s:1+Math.random()*.5,r:Math.round(r)});
+ save();renderBoard();toast('已贴 '+e);
+}
+function putText(){
+ var v=document.getElementById('tinput').value.trim();
+ if(!v){toast('先写一句想说的话');return}
+ S[curCat]=S[curCat]||[];
+ S[curCat].push({t:'t',txt:v,c:txtCls,x:.5,y:.5+Math.random()*.15,s:1,r:Math.round(Math.random()*10-5)});
+ document.getElementById('tinput').value='';
+ save();renderBoard();toast('已贴上');
+}
+document.querySelectorAll('#hibtns span').forEach(function(sp){
+ sp.onclick=function(){
+  document.querySelectorAll('#hibtns span').forEach(function(x){x.classList.remove('on')});
+  sp.classList.add('on');txtCls=sp.dataset.c;
+ };
+});
+function focusIn(el){setTimeout(function(){el.scrollIntoView({block:'center'})},300)}
+var ti=document.getElementById('tinput');
+ti.addEventListener('focus',function(){focusIn(ti)});
+/* demo / clear */
+function clearAll(){
+ confirmBox('撕掉全部贴纸，重新开始？',function(){
+  S={};save();sel=null;renderBoard();showCtrl();toast('已清空')
+ });
+}
+function demo(){
+ confirmBox('加载示例板？（会覆盖当前贴纸）',function(){
+  S={
+   0:[{t:'e',e:'✨',x:.25,y:.3,s:1.3,r:-10},{t:'t',txt:'我值得所有好事',c:'hi',x:.6,y:.28,s:1,r:-3},{t:'e',e:'🎯',x:.3,y:.68,s:1.1,r:8}],
+   1:[{t:'e',e:'❤️',x:.3,y:.35,s:1.4,r:-12},{t:'t',txt:'被认真爱着',c:'pk',x:.62,y:.6,s:1,r:4}],
+   2:[{t:'e',e:'💎',x:.28,y:.32,s:1.2,r:10},{t:'t',txt:'做热爱的事赚钱',c:'',x:.58,y:.55,s:1,r:-4},{t:'e',e:'⭐️',x:.35,y:.75,s:1,r:0}],
+   3:[{t:'e',e:'🐶',x:.3,y:.4,s:1.3,r:-6},{t:'e',e:'🎂',x:.65,y:.35,s:1.1,r:12},{t:'t',txt:'常常聚在一起',c:'',x:.5,y:.75,s:1,r:2}],
+   4:[{t:'e',e:'🏡',x:.3,y:.35,s:1.4,r:-8},{t:'t',txt:'有落地窗的家',c:'bl',x:.6,y:.6,s:1,r:3}],
+   5:[{t:'e',e:'🏝',x:.28,y:.35,s:1.3,r:6},{t:'e',e:'🎧',x:.65,y:.3,s:1,r:-10},{t:'t',txt:'2027 去海边住一个月',c:'hi',x:.5,y:.7,s:1,r:-2}]
+  };
+  save();renderBoard();toast('示例板已加载，随意改')
+ });
+}
+/* confirm（内置两步，系统 confirm 不可用） */
+var cfn=null;
+function confirmBox(msg,fn){
+ var d=document.createElement('div');
+ d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:80;display:flex;align-items:center;justify-content:center';
+ d.innerHTML='<div style="background:#fff;border-radius:16px;padding:22px;width:78%;max-width:320px;text-align:center">'+
+  '<div style="font-size:.82rem;line-height:1.6;margin-bottom:16px;color:#2B2B2B">'+msg+'</div>'+
+  '<div style="display:flex;gap:10px"><button style="flex:1;padding:11px;border-radius:12px;border:1.5px solid #EFE8DB;background:#fff;font-size:.78rem" id="cno">先不了</button>'+
+  '<button style="flex:1;padding:11px;border-radius:12px;border:none;background:#2B2B2B;color:#fff;font-size:.78rem;font-weight:700" id="cyes">确定</button></div></div>';
+ document.body.appendChild(d);
+ document.getElementById('cno').onclick=function(){d.remove()};
+ document.getElementById('cyes').onclick=function(){d.remove();fn()};
+}
+/* export PNG */
+function exportPNG(){
+ var cv=document.getElementById('cv'),g=cv.getContext('2d');
+ g.fillStyle='#FDFBF8';g.fillRect(0,0,1080,1350);
+ g.fillStyle='#E8752A';g.font='600 30px Georgia';g.textAlign='center';
+ g.fillText('M A N I F E S T',540,72);
+ g.fillStyle='#2B2B2B';g.font='italic 800 66px Georgia';
+ g.fillText('wish board.',540,146);
+ g.font='28px -apple-system,PingFang SC,sans-serif';g.fillStyle='#8F887E';
+ g.fillText(new Date().toLocaleDateString('zh-CN')+' · 我的愿景板',540,196);
+ var CW=470,CH=430,gap=30,ox=30,top=240;
+ CATS.forEach(function(c,ci){
+  var col=ci%2,row=Math.floor(ci/2);
+  var x=ox+col*(CW+gap),y=top+row*(CH+gap);
+  g.fillStyle='#FFFFFF';rr(g,x,y,CW,CH,28);g.fill();
+  g.strokeStyle='#F0EAE0';g.lineWidth=2;rr(g,x,y,CW,CH,28);g.stroke();
+  g.fillStyle=c.color;rr(g,x+22,y+22,180,44,22);g.fill();
+  g.fillStyle='#fff';g.font='700 24px sans-serif';g.textAlign='left';
+  g.fillText(c.n+' '+c.ic,x+42,y+51);
+  (S[ci]||[]).forEach(function(st){
+   var px=x+st.x*CW,py=y+st.y*CH;
+   g.save();g.translate(px,py);g.rotate(st.r*Math.PI/180);
+   if(st.t==='e'){g.font=(88*st.s)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(st.e,0,0)}
+   else{
+    g.font='700 '+(34*st.s)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';
+    var w=g.measureText(st.txt).width+52;
+    g.fillStyle=st.c==='hi'?'#FFE9A8':st.c==='pk'?'#F9D5DC':st.c==='bl'?'#D6E4F7':'#fff';
+    rr(g,-w/2,-32,w,64,16);g.fill();
+    g.strokeStyle='#EFE8DB';g.lineWidth=2;rr(g,-w/2,-32,w,64,16);g.stroke();
+    g.fillStyle='#2B2B2B';g.fillText(st.txt,0,2);
+   }
+   g.restore();
+  });
+ });
+ g.fillStyle='#B8AFA4';g.font='22px sans-serif';g.textAlign='center';
+ g.fillText('贴完收起来 · 三个月后回来对答案 — Roxie Nafousi',540,1320);
+ var a=document.createElement('a');
+ a.href=cv.toDataURL('image/png');a.download='wishboard-'+Date.now()+'.png';a.click();
+ toast('PNG 已导出');
+}
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+var tt;
+function toast(s){var t=document.getElementById('toast');t.textContent=s;t.classList.add('show');
+ clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},1800)}
+renderBoard();renderTabs();
+</script>
+</body>
+</html>
